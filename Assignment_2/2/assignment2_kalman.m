@@ -30,8 +30,8 @@
         Generate the observed positions of the truck by using the relation given in the question.
         Use the Kalman filter principles to estimate the actual position of the truck. These positions 
         are then plotted. The Kalman filter principles which are used in this solution set uses the 
-        relations defined in Simon Haykin's Adaptive Filter Theory
-   
+        relations found from the official Matlab site.
+
 %}
 
 clear all;
@@ -39,7 +39,7 @@ clc;
 clf;
 
 %%define the meta-variables
-duration = 500;                                                  %number of samples
+duration = 500                                                  %number of samples
 dt = 1;                                                         %sampling interval
 
 F = [1 dt; 0 1] ;                                               %state transition matrix
@@ -53,7 +53,7 @@ Q_estimate = mvnrnd(mu, sigma, 1);                              %simulate a init
 Q_estimate = Q_estimate';
 
 G = zeros(2, 1);                                                %initialize kalman gain
-K = eye(2);                                                     %initialize the K matrix as defined in the question
+K = eye(2);                                                     %initialize the K matrix
 Ez = 0.25;                                                      %covariance matrix for gps error
 Ex = 1 * [dt^4/4 dt^3/2; dt^3/2 dt^2];                          %covariance error matrix for acceleration  
 
@@ -76,35 +76,39 @@ disp("Run the Kalman filtering on the measured positions");
 S_estimate = [];                                                %array for storing kalman estimated values of truck position
 vel_estimate = [];                                              %array for stroing kalman estimated values of truck velocity
 
-for t = 1: dt: duration
+for t = 1:dt:(duration+1)
     
-    R = C * K * C' + Ez;                                        %
+    Q_estimate = F * Q_estimate;                                %estimate the value of the state
     
-    G = F * K * C' * inv(R);                                    %compute the kalman gain
-
-    alpha_t = S_measured(t) - C *  Q_estimate;                  %calculate the innovation
+    if t == (duration+1)                                        %specific if-else clause to estimate the value for t = 501
+        S_estimate = [S_estimate; Q_estimate(1)];
+        break;
+    end
     
-    Q_estimate = F * Q_estimate + G * alpha_t;                  %update the state estimate
+    K = F * K * F' + Ex;                                        
+    
+    R = C* K *C' + Ez;                                              
+    G = K * C' * inv(R);                                        %calculate the kalman Gain
+    
+    alpha_t = S_measured(t) - C * Q_estimate ;                  %calculate the innovation 
+    
+    Q_estimate = Q_estimate + G  ...                            %update the state estimate.
+    *(alpha_t);
+     
+    K =  (eye(2)-G*C)*K;                                        %update the covariance estimate
+    
     
     S_estimate = [S_estimate; Q_estimate(1)];                   %store position estimate for plotting
-    
-    vel_estimate = [vel_estimate, Q_estimate(2)];               %store velocity estimate for plotting
-    
-    k_hat = K - F * G * C * K;                                  
-
-    K = F * k_hat * F' + Ex;                                    %update the covariance estimate
+    vel_estimate = [vel_estimate; Q_estimate(2)];               %store velocity estimate for plotting
 
 end
 
 
-error_sig = S_estimate - S_measured;                            %calculate the error signal between the estimated and the measured values 
+error_sig = S_estimate(1:500) - S_measured;                     %compute the error between the measured positions and the estimated positions                         
 
 % Plot the results
 figure(1);
-plot(S_measured, '-r.');
-
-figure(2);
-plot(S_estimate, '-g.');
-
-figure(3);
-plot(error_sig,  '-k.');  
+plot(S_measured, '-r.'); hold on; 
+plot(S_estimate, '-g.'); 
+plot(error_sig,  '-k.'); hold off;  
+axis([0 505 -10 130])
