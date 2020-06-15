@@ -108,7 +108,10 @@ error_sig = S_estimate(1:500) - S_measured;                     %compute the err
 
 % Plot the results
 figure(1);
-plot(S_measured, '-r.'); hold on; 
-plot(S_estimate, '-g.'); 
+plot(S_measured, 'b--', 'Linewidth', 2); hold on; 
+plot(S_estimate, 'g-', 'Linewidth', 2); 
 plot(error_sig,  '-k.'); hold off;  
+xlabel('Iteration number')
+ylabel('Position Tracking')
+legend('measured', 'estimated', 'error', 'Location','northwest');
 axis([0 505 -10 130])
